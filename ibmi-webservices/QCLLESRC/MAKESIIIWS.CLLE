@@ -1,0 +1,157 @@
+000100190719             PGM        PARM(&key &tgtrls)
+000101190719             DCL        &key        *CHAR LEN(15)
+000102190719             DCL        &tgtrls    *CHAR LEN(10)
+000103190719
+000104190719             DCL        &libsrc     *CHAR LEN(10) VALUE('SIIIWS')
+000105190719             DCL        &libobj     *CHAR LEN(10) VALUE('SIIIWS')
+000106190719             DCL        &object     *CHAR LEN(10)
+000107190719             DCL        &srctype    *CHAR LEN(10)
+000108190719             DCL        &error      *INT  LEN(4)
+000109190719/* ---------------------------------------------------------------*/
+000112190719/* ---------------------------------------------------------------*/
+000113190719             IF         COND(&tgtrls *EQ ' ') THEN(DO)
+000114190719                CHGVAR     &tgtrls ('*CURRENT')
+000115190719             ENDDO
+000116190719/* ---------------------------------------------------------------*/
+000117190719             CRTBNDDIR  BNDDIR(&libobj/SIIIWS) TEXT('Binderverzeichnis für SIIIWS')
+000118190719             MONMSG     MSGID(CPF5D10 CPF5D0B CPF2112)
+000119190719             ADDBNDDIRE BNDDIR(SIIIWS/&LIBOBJ) OBJ((QSYSDIR/QAXIS10CC))
+000120190719             MONMSG     MSGID(CPF0000)
+000121190719/* ---------------------------------------------------------------*/
+000122190719             CHGVAR     &object ('HTTPGET1')
+000123190719             CALLSUBR   crtBNDRPG RTNVAL(&error)
+000124190719             IF         COND(&error *EQ 1) THEN(GOTO CMDLBL(PGMENDE))
+000125190719/* ---------------------------------------------------------------*/
+000126190719             CHGVAR     &object ('AXIS1')
+000127190719             CALLSUBR   crtBNDRPG RTNVAL(&error)
+000128190719             IF         COND(&error *EQ 1) THEN(GOTO CMDLBL(PGMENDE))
+000129190719/* ---------------------------------------------------------------*/
+000130190719             CHGVAR     &object ('CURL1')
+000131190719             CALLSUBR   crtBNDRPG RTNVAL(&error)
+000132190719             IF         COND(&error *EQ 1) THEN(GOTO CMDLBL(PGMENDE))
+000133190719/* ---------------------------------------------------------------*/
+000134190719             CHGVAR     &object ('WGET1')
+000135190719             CALLSUBR   crtBNDRPG RTNVAL(&error)
+000136190719             IF         COND(&error *EQ 1) THEN(GOTO CMDLBL(PGMENDE))
+000137190719/* ---------------------------------------------------------------*/
+000278190719
+000279190719
+000280190719 PGMENDE:
+000281190719/* ---------------------------------------------------------------*/
+000282190719             CLRLIB     LIB(QTEMP)
+000283190719/* ---------------------------------------------------------------*/
+000284190719/*   RMVLIBLE   LIB(&libobj)                                      */
+000285190719/* ============================================================== */
+000286190719             SUBR       crtSRVPGM
+000287190719                RTVMBRD    FILE(&libsrc/QRPGLESRC) MBR(&object) SRCTYPE(&srctype)
+000288190719                IF         COND(&srctype *EQ 'RPGLE') THEN(DO)
+000289190719                   CRTRPGMOD  MODULE(QTEMP/&object) SRCFILE(&libsrc/QRPGLESRC) SRCMBR(&object) DBGVIEW(*ALL) DBGENCKEY(&key) OPTION(*EVENTF) TGTRLS(&tgtrls)
+000295190719                   MONMSG     MSGID(CPF0000 ICE0000) EXEC(DO)
+000296190719                      DSPSPLF    FILE(&object) JOB(*) SPLNBR(*LAST)
+000297190719                      RTNSUBR    RTNVAL(1)
+000298190719                   ENDDO
+000299190719                ENDDO
+000300190719                ELSE       DO
+000301190719                   CRTSQLRPGI OBJ(QTEMP/&object) SRCFILE(&libsrc/QRPGLESRC) SRCMBR(&object) OBJTYPE(*MODULE) REPLACE(*YES) OPTION(*XREF *EVENTF) DBGVIEW(*SOURCE) DBGENCKEY(&key) RPGPPOPT(*LVL2) TGTRLS(&tgtrls)
+000311190719                   MONMSG     MSGID(CPF0000 ICE0000) EXEC(DO)
+000312190719                      DSPSPLF    FILE(&object) JOB(*) SPLNBR(*LAST)
+000313190719                      RTNSUBR    RTNVAL(1)
+000314190719                   ENDDO
+000315190719                ENDDO
+000316190719
+000317190719                CRTSRVPGM  SRVPGM(&libobj/&object) MODULE(QTEMP/&object) EXPORT(*SRCFILE) SRCFILE(&libsrc/QSRVSRC) SRCMBR(*SRVPGM) OPTION(*DUPPROC) TGTRLS(&tgtrls)
+000324190719                MONMSG     MSGID(CPF0000) EXEC(DO)
+000325190719                   DSPJOBLOG
+000326190719                   RTNSUBR    RTNVAL(1)
+000327190719                ENDDO
+000328190719             ENDSUBR
+000329190719/* ============================================================== */
+000330190719             SUBR       addBNDDIRE
+000331190719                RMVBNDDIRE BNDDIR(&libobj/SIIIA) OBJ((&object *SRVPGM))
+000332190719                MONMSG     MSGID(CPD5D1C)
+000333190719                ADDBNDDIRE BNDDIR(&libobj/SIIIA) OBJ((&object *SRVPGM *DEFER))
+000334190719                MONMSG     MSGID(CPF0000) EXEC(DO)
+000335190719                   DSPJOBLOG
+000336190719                   RTNSUBR    RTNVAL(1)
+000337190719                ENDDO
+000338190719             ENDSUBR
+000339190719/* ============================================================== */
+000340190719             SUBR       crtBNDRPG
+000341190719                RTVMBRD    FILE(&libsrc/QRPGLESRC) MBR(&object) SRCTYPE(&srctype)
+000342190719                IF         COND(&srctype *EQ 'RPGLE') THEN(DO)
+000343190719                   CRTBNDRPG  PGM(&libobj/&object) SRCFILE(&libsrc/QRPGLESRC) SRCMBR(&object) OPTION(*EVENTF) DBGVIEW(*ALL) DBGENCKEY(&key) TGTRLS(&tgtrls)
+000344190719                   MONMSG     MSGID(CPF0000) EXEC(DO)
+000345190719                      DSPSPLF    FILE(&object) JOB(*) SPLNBR(*LAST)
+000346190719                      RTNSUBR    RTNVAL(1)
+000347190719                   ENDDO
+000348190719                ENDDO
+000349190719                ELSE       DO
+000350190719                   CRTSQLRPGI OBJ(QTEMP/&object) SRCFILE(&libsrc/QRPGLESRC) SRCMBR(&object) OBJTYPE(*PGM) REPLACE(*YES) OPTION(*XREF *EVENTF) DBGVIEW(*SOURCE) DBGENCKEY(&key) RPGPPOPT(*LVL2) TGTRLS(&tgtrls)
+000351190719                   MONMSG     MSGID(CPF0000 ICE0000) EXEC(DO)
+000352190719                      DSPSPLF    FILE(&object) JOB(*) SPLNBR(*LAST)
+000353190719                      RTNSUBR    RTNVAL(1)
+000354190719                   ENDDO
+000355190719                ENDDO
+000356190719
+000357190719             ENDSUBR
+000358190719/* ============================================================== */
+000359190719             SUBR       crtSQLRPGI
+000360190719                CRTSQLRPGI OBJ(&libobj/&object) SRCFILE(&libsrc/QRPGLESRC) SRCMBR(&object) OPTION(*EVENTF) RPGPPOPT(*LVL2) DBGVIEW(*SOURCE) DBGENCKEY(&key) TGTRLS(&tgtrls)
+000364190719                MONMSG     MSGID(CPF0000) EXEC(DO)
+000365190719                   DSPSPLF    FILE(&object) JOB(*) SPLNBR(*LAST)
+000366190719                   RTNSUBR    RTNVAL(1)
+000367190719                ENDDO
+000368190719
+000369190719             ENDSUBR
+000370190719/* ============================================================== */
+000371190719             SUBR       crtDSPF
+000372190719                CRTDSPF    FILE(&libobj/&object) SRCFILE(&libsrc/QDDSSRC) SRCMBR(&object)
+000375190719                MONMSG     MSGID(CPF0000) EXEC(DO)
+000376190719                   DSPSPLF    FILE(&object) JOB(*) SPLNBR(*LAST)
+000377190719                   RTNSUBR    RTNVAL(1)
+000378190719                ENDDO
+000379190719
+000380190719             ENDSUBR
+000381190719/* ============================================================== */
+000382190719             SUBR       crtPF
+000383190719                CRTPF      FILE(&libobj/&object) SRCFILE(&libsrc/QDDSSRC) SRCMBR(&object) IGCDTA(*N)
+000387190719                MONMSG     MSGID(CPF0000) EXEC(DO)
+000388190719                   DSPSPLF    FILE(&object) JOB(*) SPLNBR(*LAST)
+000389190719                   RTNSUBR    RTNVAL(1)
+000390190719                ENDDO
+000391190719
+000392190719             ENDSUBR
+000393190719/* ============================================================== */
+000394190719             SUBR       runSQLS
+000395190719                RUNSQLSTM  SRCFILE(&libsrc/QDDLSRC) SRCMBR(&object) COMMIT(*NONE) MARGINS(240) OUTPUT(*PRINT)
+000400190719                MONMSG     MSGID(CPF0000) EXEC(DO)
+000401190719                   DSPSPLF    FILE(&object) JOB(*) SPLNBR(*LAST)
+000402190719                   RTNSUBR    RTNVAL(1)
+000403190719                ENDDO
+000404190719
+000405190719             ENDSUBR
+000406190719
+000407190719/* ============================================================== */
+000408190719             SUBR       runINIT
+000409190719                ADDBNDDIRE BNDDIR(&libobj/SIIIA) OBJ((QSHELL/QZSHAPI))
+000410190719                MONMSG     MSGID(CPF0000)
+000411190719             ENDSUBR
+000412190719/* ============================================================== */
+000413190719             SUBR       crtMSGF
+000414190719                DLTMSGF    MSGF(SIMSGF)
+000415190719                MONMSG     MSGID(CPF2105)
+000416190719                CRTMSGF    MSGF(SIMSGF) TEXT('SI: Messages for Framework SIIIA')
+000417190719                MONMSG     MSGID(CPF0000)
+000418190719
+000419190719                /* Messages for SIXCP  */
+000420190719                QSYS/ADDMSGD MSGID(SIE0000) MSGF(*CURLIB/SIMSGF) MSG('&1') SECLVL('Generic Message. No more details.') FMT((*CHAR 50))
+000425190719
+000426190719                QSYS/ADDMSGD MSGID(SIE0001) MSGF(*CURLIB/SIMSGF) MSG('Error, cannot change current directory.') SECLVL('See Joblog.')
+000430190719
+000431190719                /* Messages for SICURL */
+000432190719                QSYS/ADDMSGD MSGID(SIEAA00) MSGF(*CURLIB/SIMSGF) MSG('Command &1 not supported by SICURL') SECLVL('For more details see Prozedure SICURL_runCmd                              in SRVPGM:SICURL.') FMT((*CHAR 6))
+000437190719
+000438190719             ENDSUBR
+000439190719/* ============================================================== */
+000440190719
+000441190719             ENDPGM

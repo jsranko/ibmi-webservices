@@ -3,7 +3,7 @@
 000102190715
 000103190715/include SIIIA/qcpylesrc,systemp
 000104190708
-000105190715dcl-s WebServiceUrl varchar(256) inz('https://webservicesforibmi.azurewebsites.net/files/earthquake');
+000105190719dcl-s WebServiceUrl varchar(256) inz('http://webservicesforibmi.azurewebsites.net/displayRequest?x=1');
 000106190715dcl-s curl varchar(512);
 000107190715dcl-s Qsh varchar(512);
 000108190715
